@@ -1,0 +1,110 @@
+package doggytalents.client.entity.render;
+
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.*;
+import com.mojang.math.Matrix4f;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+
+public class RenderUtil {
+
+    public static <T extends Entity> void renderLabelWithScale(T entity, EntityRenderer<T> renderer, EntityRenderDispatcher entityRenderDispatcher, Component text, PoseStack stack, MultiBufferSource buffer, int packedLightIn, float scale, float yChange, boolean renderBkg) {
+        renderLabelWithScale(!entity.isDiscrete(), renderer, entityRenderDispatcher, text, stack, buffer, packedLightIn, scale, yChange + entity.getBbHeight() + 0.5F, renderBkg);
+    }
+
+    public static <T extends Entity> void renderLabelWithScale(T entity, EntityRenderer<T> renderer, EntityRenderDispatcher entityRenderDispatcher, String text, PoseStack stack, MultiBufferSource buffer, int packedLightIn, float scale, float yChange, boolean renderBkg) {
+        renderLabelWithScale(!entity.isDiscrete(), renderer, entityRenderDispatcher, Component.literal(text), stack, buffer, packedLightIn, scale, yChange + entity.getBbHeight() + 0.5F, renderBkg);
+    }
+
+    // public static void renderLabelWithScale(boolean flag, EntityRenderer renderer, EntityRenderDispatcher entityRenderDispatcher, Component text, PoseStack stack, MultiBufferSource buffer, int packedLightIn, float scale, float yOffset) {
+    //     renderLabelWithScale(flag, renderer, entityRenderDispatcher, text.getString(), stack, buffer, packedLightIn, scale, yOffset);
+    // }
+
+    public static void renderLabelWithScale(boolean flag, EntityRenderer renderer, EntityRenderDispatcher entityRenderDispatcher, Component text, PoseStack stack, MultiBufferSource buffer, int packedLightIn, float scale, float yOffset, boolean renderBkg) {
+        stack.pushPose();
+        stack.translate(0.0D, yOffset, 0.0D);
+        stack.mulPose(entityRenderDispatcher.cameraOrientation());
+        stack.scale(-scale, -scale, scale);
+        Matrix4f matrix4f = stack.last().pose();
+        float f1 = renderBkg ? Minecraft.getInstance().options.getBackgroundOpacity(0.25F) : 0;
+        int j = (int) (f1 * 255.0F) << 24;
+        Font fontrenderer = renderer.getFont();
+        float f2 = -fontrenderer.width(text) / 2F;
+        fontrenderer.drawInBatch(text, f2, 0, 553648127, false, matrix4f, buffer, flag, j, packedLightIn);
+        if (flag) {
+            fontrenderer.drawInBatch(text, f2, 0, -1, false, matrix4f, buffer, false, 0, packedLightIn);
+        }
+
+        stack.popPose();
+    }
+
+    // From net.minecraft.client.gui.AbstractGui
+    public static void blit(int x, int y, int zLevel, int width, int height, TextureAtlasSprite sprite) {
+        innerBlit(x, x + width, y, y + height, zLevel, sprite.getU0(), sprite.getU1(), sprite.getV0(), sprite.getV1());
+    }
+
+    public static void blit(int x, int y, int width, int height, int textureX, int textureY) {
+        blit(x, y, 0, width, height, textureX, textureY, 256, 256);
+    }
+
+    public static void blit(int p_blit_0_, int p_blit_1_, int p_blit_2_, float p_blit_3_, float p_blit_4_, int p_blit_5_, int p_blit_6_, int p_blit_7_, int p_blit_8_) {
+        innerBlit(p_blit_0_, p_blit_0_ + p_blit_5_, p_blit_1_, p_blit_1_ + p_blit_6_, p_blit_2_, p_blit_5_, p_blit_6_, p_blit_3_, p_blit_4_, p_blit_8_, p_blit_7_);
+    }
+
+    public static void blit(int p_blit_0_, int p_blit_1_, int p_blit_2_, int p_blit_3_, float p_blit_4_, float p_blit_5_, int p_blit_6_, int p_blit_7_, int p_blit_8_, int p_blit_9_) {
+        innerBlit(p_blit_0_, p_blit_0_ + p_blit_2_, p_blit_1_, p_blit_1_ + p_blit_3_, 0, p_blit_6_, p_blit_7_, p_blit_4_, p_blit_5_, p_blit_8_, p_blit_9_);
+    }
+
+    public static void blit(int p_blit_0_, int p_blit_1_, float p_blit_2_, float p_blit_3_, int p_blit_4_, int p_blit_5_, int p_blit_6_, int p_blit_7_) {
+        blit(p_blit_0_, p_blit_1_, p_blit_4_, p_blit_5_, p_blit_2_, p_blit_3_, p_blit_4_, p_blit_5_, p_blit_6_, p_blit_7_);
+    }
+
+    public static void innerBlit(int minX, int maxX, int yMin, int yMax, int zLevel, int textureXMin, int textureXMax, float textureYMin, float textureYMax, int textureXScale, int textureYScale) {
+        innerBlit(minX, maxX, yMin, yMax, zLevel, textureYMin / textureXScale, (textureYMin + textureXMin) / textureXScale, textureYMax / textureYScale, (textureYMax + textureXMax) / textureYScale);
+    }
+
+    public static void innerBlit(int minX, int maxX, int yMin, int yMax, int zLevel, float textureXMin, float textureXMax, float textureYMin, float textureYMax) {
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        BufferBuilder bufferbuilder = Tesselator.getInstance().getBuilder();
+        bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        bufferbuilder.vertex(minX, yMax, zLevel).uv(textureXMin, textureYMax).endVertex();
+        bufferbuilder.vertex(maxX, yMax, zLevel).uv(textureXMax, textureYMax).endVertex();
+        bufferbuilder.vertex(maxX, yMin, zLevel).uv(textureXMax, textureYMin).endVertex();
+        bufferbuilder.vertex(minX, yMin, zLevel).uv(textureXMin, textureYMin).endVertex();
+        BufferUploader.drawWithShader(bufferbuilder.end());
+    }
+    
+    public static int rgbToInt(int[] rgb) {
+        return rgb[0] << 16 | rgb[1] << 8 | rgb[2];
+    }
+
+    public static int[] intToRgb(int color) {
+        int r = (color >> 16) & 255;
+        int g = (color >> 8) & 255;
+        int b = (color >> 0) & 255;
+        return new int[]{r, g, b};
+    }
+
+    public static void blit_for_1_19_2below(GuiComponent comp, PoseStack stack, ResourceLocation blitLoc, int x, int y,
+        int imgX, int imgY, int imgW, int imgH, boolean blend) {
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1);
+        RenderSystem.setShaderTexture(0, blitLoc);
+        if (blend) {
+            RenderSystem.enableBlend();
+            RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        }
+        comp.blit(stack, x, y, imgX, imgY, imgW, imgH);
+    }
+}
